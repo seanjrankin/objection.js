@@ -941,7 +941,7 @@ describe('Model', () => {
     });
   });
 
-  describe('$toJson', () => {
+  describe.only('$toJson', () => {
     let Model1;
 
     beforeEach(() => {
@@ -973,6 +973,71 @@ describe('Model', () => {
       expect(output.a).to.equal(1);
       expect(output.b).to.equal(2);
       expect(calls).to.equal(1);
+    });
+
+    it('should pass custom options to $formatJson', () => {
+      let calls = 0;
+      let json = { a: 1 };
+      let customOpt = { b: 'custom', c: 2 };
+
+      Model1.prototype.$formatJson = (jsn, opt) => {
+        ++calls;
+        expect(jsn).to.eql(json);
+        expect(opt).to.eql(customOpt);
+        return jsn;
+      };
+
+      let model = Model1.fromJson(json);
+      let output = model.$toJson({ custom: customOpt });
+
+      expect(output.a).to.equal(1);
+      expect(calls).to.equal(1);
+    });
+
+    it('should pass custom options to $formatJson for relations', () => {
+      let calls = 0;
+      let json = { a: 1, b: 2, model1: { a: 3, b: 4 } };
+      let customOpt = { b: 'custom', c: 2 };
+
+      class Model1 extends modelClass('Model1') {
+        $formatJson(json, options) {
+          let formattedJson = super.$formatJson(json, options);
+          calls++;
+          console.log('1 JSON');
+          expect(options).to.eql(customOpt);
+          return formattedJson;
+        }
+      }
+
+      class Model2 extends modelClass('Model2') {
+        $formatJson(json, options) {
+          let formattedJson = super.$formatJson(json, options);
+          calls++;
+          console.log('2 JSON');
+          expect(options).to.eql(customOpt);
+          return formattedJson;
+        }
+
+        static get relationMappings() {
+          return {
+            model1: {
+              relation: Model.BelongsToOneRelation,
+              modelClass: Model1,
+              join: {
+                from: 'Model2.model1Id',
+                to: 'Model1.id'
+              }
+            }
+          };
+        }
+      }
+
+      let model = Model2.fromJson(json);
+      let output = model.toJSON({ custom: customOpt });
+
+      expect(output.a).to.equal(json.a);
+      expect(output.b).to.equal(json.b);
+      expect(calls).to.equal(2);
     });
 
     it('should call $toJson for properties of class Model', () => {
@@ -2632,6 +2697,20 @@ describe('Model', () => {
     return class TestModel extends Model {
       static get tableName() {
         return tableName;
+      }
+    };
+  }
+
+  function modelJsonClass(tableName, callback) {
+    return class TestModel extends Model {
+      static get tableName() {
+        return tableName;
+      }
+
+      $formatJson(json, options) {
+        let formattedJson = super.$formatJson(json, options);
+        callback(json, options);
+        return formattedJson;
       }
     };
   }

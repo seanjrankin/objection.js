@@ -1254,6 +1254,7 @@ declare namespace Objection {
 
   export interface ToJsonOptions extends CloneOptions {
     virtuals?: boolean | string[];
+    custom?: {};
   }
 
   export interface ValidatorContext {
@@ -1657,7 +1658,7 @@ declare namespace Objection {
     $formatDatabaseJson(json: Pojo): Pojo;
     $parseDatabaseJson(json: Pojo): Pojo;
 
-    $formatJson(json: Pojo): Pojo;
+    $formatJson(json: Pojo, options?: {}): Pojo;
     $parseJson(json: Pojo, opt?: ModelOptions): Pojo;
 
     $beforeValidate(jsonSchema: JSONSchema, json: Pojo, opt: ModelOptions): JSONSchema;
